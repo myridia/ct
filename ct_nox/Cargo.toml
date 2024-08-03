@@ -1,0 +1,12 @@
+[package]
+name = "ct_nox"
+version = "0.1.0"
+authors = ["veto"]
+edition = "2021"
+
+[dependencies]
+clap = {version='4.1.4', features = ["cargo"]}
+hex = "0.4.3"
+rust-crypto = "0.2.0"
+rand = "0.8.5"
+

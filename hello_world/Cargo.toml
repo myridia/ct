@@ -1,0 +1,13 @@
+[package]
+name = "hello_world"
+version = "0.1.0"
+authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+license = "MIT OR Apache-2.0"
+edition = "2021"
+rust-version = "1.65"
+publish = false
+
+
+[dependencies]
+tracing-subscriber = "0.3"
+eframe = { version = "0.20.1", features = ["__screenshot"] }

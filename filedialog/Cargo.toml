@@ -1,0 +1,11 @@
+[package]
+name = "file"
+version = "0.1.0"
+authors = ["veto"]
+edition = "2021"
+rust-version = "1.66"
+
+
+[dependencies]
+egui_file = "0.5"
+eframe = "0.20"
