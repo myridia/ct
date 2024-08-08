@@ -3,12 +3,15 @@ name = "ct"
 version = "0.1.0"
 authors = ["veto"]
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.80"
 
 
 [dependencies]
 ct_nox = { path = "./ct_nox"}
-eframe = { version = "0.21.3", default-features = false, features = [
+
+
+#https://docs.rs/eframe/latest/eframe/
+eframe = { version = "0.23.0", default-features = false, features = [
 "__screenshot",
 "default_fonts",
 "glow",
@@ -16,8 +19,15 @@ eframe = { version = "0.21.3", default-features = false, features = [
 "persistence"
 ] }
 
-egui_file = {version = "0.5.4"}
-rfd = "0.10"
-image = "0.24.5"
+#https://docs.rs/egui_file/latest/egui_file/
+egui_file = {version = "*"}
+
+#https://docs.rs/rfd/latest/rfd/
+rfd = "*"
+
+#https://docs.rs/image/latest/image/
+image = "*"
+
+#https://docs.rs/cli-clipboard/latest/cli_clipboard/
 cli-clipboard = {version="*"}
 #native-dialog = "0.6.3"

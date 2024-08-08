@@ -3,10 +3,10 @@ name = "ct_nox"
 version = "0.1.0"
 authors = ["veto"]
 edition = "2021"
-
+rust-version = "1.80"
 [dependencies]
-clap = {version='4.1.4', features = ["cargo"]}
-hex = "0.4.3"
-rust-crypto = "0.2.0"
-rand = "0.8.5"
+clap = {version='*', features = ["cargo"]}
+hex = "*"
+rust-crypto = "*"
+rand = "*"
 

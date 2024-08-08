@@ -6,10 +6,10 @@ It used the Galois/Counter Mode (GCM), an AEAD mode of operation for symmetric-k
 If you are using or are interested in this App, please send me some Feedback.
 Any comment, request, critic or whatsoever is very welcome! <veto@myridia.com>
 
-## Compile for Linux
+## Compile for Linux Debian
 ### Add lib requirements
 ```Bash
-  sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-de
+  sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libssl-dev
 ```
 
 
