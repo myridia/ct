@@ -9,4 +9,5 @@ clap = {version='*', features = ["cargo"]}
 hex = "*"
 rust-crypto = "*"
 rand = "*"
+png = "*"
 

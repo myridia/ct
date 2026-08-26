@@ -5,6 +5,7 @@ use std::io::ErrorKind;
 use std::iter::repeat;
 use std::str::from_utf8;
 use std::{io, str};
+use crate::get_valid_key;
 
 pub fn decrypt(_text: &str, _password: &str) -> String {
     let db = _decrypt(_text, _password);
@@ -64,19 +65,4 @@ fn split_iv_data_mac(orig: &str) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Box<dyn 
 
     //println!("iv: {:?}",iv);
     Ok((iv, data, mac))
-}
-
-/// gets a valid key. This must be exactly 16 bytes. if less than 16 bytes, it will be padded with 0.
-/// If more than 16 bytes, it will be truncated
-fn get_valid_key(key: &str) -> Vec<u8> {
-    let mut bytes = key.as_bytes().to_vec();
-    if bytes.len() < 16 {
-        for _j in 0..(16 - bytes.len()) {
-            bytes.push(0x00);
-        }
-    } else if bytes.len() > 16 {
-        bytes = bytes[0..16].to_vec();
-    }
-    //println!("key: {:?}",bytes);
-    bytes
 }

@@ -8,16 +8,25 @@ use std::io;
 use std::path::Path;
 
 pub fn save_config(language: &str) -> bool {
-    let r = true;
     let mut config = get_config();
     config.language = language.to_string();
-    let toml = toml::to_string(&config).unwrap();
+    write_config(&config);
+    true
+}
+
+pub fn save_last_dir(dir: &str) {
+    let mut config = get_config();
+    config.last_dir = dir.to_string();
+    write_config(&config);
+}
+
+fn write_config(config: &AppConfig) {
+    let toml = toml::to_string(config).unwrap();
     let home = my_home().unwrap().unwrap();
-    let _config_dir = &format!("{0}/.ct/", home.display());
-    let _config_path = &format!("{0}/.ct/config.toml", home.display());
-    let config_path = Path::new(_config_path);
+    let config_dir = &format!("{0}/.ct/", home.display());
+    let config_path = &format!("{0}/.ct/config.toml", home.display());
+    let _ = fs::create_dir_all(config_dir);
     fs::write(config_path, toml).unwrap();
-    return r;
 }
 
 pub fn get_config() -> AppConfig {
@@ -36,6 +45,7 @@ pub fn get_config() -> AppConfig {
 
             AppConfig {
                 language: "en-US".to_string(),
+                last_dir: String::new(),
             }
         }
     };
@@ -64,17 +74,21 @@ impl From<toml::de::Error> for ConfigError {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     pub language: String,
+    #[serde(default)]
+    pub last_dir: String,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
-        //let requested_languages = DesktopLanguageRequester::requested_languages();
         let mut lang = "en-US".to_string();
         let _lang = get_lang();
         if _lang.is_ok() {
             lang = _lang.unwrap();
         }
-        Self { language: lang }
+        Self {
+            language: lang,
+            last_dir: String::new(),
+        }
     }
 }
 

@@ -2,85 +2,153 @@ use clap::{Arg, Command};
 use ct_nox::ct_nox::{read_file, write_file};
 use ct_nox::decrypt::decrypt;
 use ct_nox::encrypt::encrypt;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::BufReader;
-// https://docs.rs/clap/4.1.4/clap/struct.Command.html
-// https://docs.rs/clap/latest/clap/builder/struct.Arg.html#method.help_heading
+use ct_nox::image_strip::{encode_to_image, encode_to_selected_image, decode_from_image};
+
+fn ensure_extension(path: &str, ext: &str) -> String {
+    match path.rfind('.') {
+        Some(pos) => {
+            let existing = &path[pos..];
+            if existing.eq_ignore_ascii_case(ext) {
+                path.to_string()
+            } else {
+                format!("{}{}", path, ext)
+            }
+        }
+        None => format!("{}{}", path, ext),
+    }
+}
 
 fn main() {
-    // https://docs.rs/clap/latest/clap/_tutorial/index.html
-    let matches = Command::new("My Program")
-        .author("Me, me@mail.com")
-        .version("1.0.2")
-        .about("Explains in brief what the program does")
-        .arg(Arg::new("mode").short('m').long("mode"))
-        .arg(Arg::new("password").short('p').long("password"))
-        .arg(
-            Arg::new("text")
-                .short('t')
-                .long("text")
-                .help("Example: ./ct_nox -f  /home/foo/bar.txt -m encrypt -p 12345"),
+    let matches = Command::new("ct_nox")
+        .author("veto")
+        .about("Encrypt/decrypt text with AES-128-GCM")
+        .subcommand(
+            Command::new("encrypt")
+                .about("Encrypt text")
+                .arg(Arg::new("text").short('t').long("text"))
+                .arg(Arg::new("password").short('p').long("password").required(true))
+                .arg(Arg::new("file").short('f').long("file"))
+                .arg(Arg::new("output").short('o').long("output")),
         )
-        .arg(
-            Arg::new("file")
-                .short('f')
-                .long("file")
-                .help("Example: ./ct_nox -f  /home/foo/bar.txt -m encrypt -p 12345"),
+        .subcommand(
+            Command::new("decrypt")
+                .about("Decrypt text")
+                .arg(Arg::new("text").short('t').long("text"))
+                .arg(Arg::new("password").short('p').long("password").required(true))
+                .arg(Arg::new("file").short('f').long("file")),
         )
-        .arg(Arg::new("output").short('o').long("output").help(
-            "Example: ./ct_nox -f  /home/foo/bar.txt -m encrypt -p 12345 -o /home/foo/bar.ct",
-        ))
-        .after_help(
-            "Longer explanation to appear after the options when \
-                 displaying the help information from --help or -h",
+        .subcommand(
+            Command::new("image-encode")
+                .about("Encrypt text/file and encode as binary frame PNG")
+                .arg(Arg::new("text").short('t').long("text"))
+                .arg(Arg::new("file").short('f').long("file"))
+                .arg(Arg::new("password").short('p').long("password").required(true))
+                .arg(Arg::new("output").short('o').long("output").required(true)),
+        )
+        .subcommand(
+            Command::new("image-decode")
+                .about("Decode binary frame PNG and decrypt")
+                .arg(Arg::new("file").short('f').long("file").required(true))
+                .arg(Arg::new("password").short('p').long("password").required(true)),
+        )
+        .subcommand(
+            Command::new("image-encode-selected")
+                .about("Encrypt and overlay frame onto an existing PNG")
+                .arg(Arg::new("text").short('t').long("text"))
+                .arg(Arg::new("file").short('f').long("file"))
+                .arg(Arg::new("background").short('b').long("background").required(true))
+                .arg(Arg::new("password").short('p').long("password").required(true))
+                .arg(Arg::new("output").short('o').long("output").required(true)),
         )
         .get_matches();
-    let mut _password = "";
-    let mut _text = "";
-    let mut _file = "";
-    let mut _output = "";
-    let mut _mode = "encrypt";
 
-    if let Some(password) = matches.get_one::<String>("password") {
-        _password = password;
-    }
-
-    if let Some(text) = matches.get_one::<String>("text") {
-        _text = text;
-    }
-
-    if let Some(file) = matches.get_one::<String>("file") {
-        _file = file;
-    }
-
-    if let Some(mode) = matches.get_one::<String>("mode") {
-        _mode = mode;
-    }
-
-    if let Some(output) = matches.get_one::<String>("output") {
-        _output = output;
-    }
-
-    if _password != "" && _text != "" && _mode == "encrypt" {
-        let ct = encrypt(_text, _password);
-        println!("{}", ct);
-    }
-
-    if _password != "" && _text != "" && _mode == "decrypt" {
-        let text = decrypt(_text, _password);
-        println!("{}", text);
-    }
-
-    if _password != "" && _file != "" && _mode == "encrypt" {
-        println!("...load file: {}", _file);
-        let txt = read_file("/home/veto2/Downloads/hello.txt");
-        let ct = encrypt(&txt, _password);
-        if _output != "" {
-            let r = write_file(_output, &ct);
-            println!("saved to: {}", _output);
-        } else {
-            println!("{}", ct);
+    match matches.subcommand() {
+        Some(("encrypt", args)) => {
+            let password = args.get_one::<String>("password").unwrap();
+            if let Some(text) = args.get_one::<String>("text") {
+                let ct = encrypt(text, password);
+                if let Some(output) = args.get_one::<String>("output") {
+                    let out = ensure_extension(output, ".ct");
+                    write_file(&out, &ct).unwrap();
+                    println!("saved to: {}", out);
+                } else {
+                    println!("{}", ct);
+                }
+            } else if let Some(file) = args.get_one::<String>("file") {
+                let txt = read_file(file);
+                let ct = encrypt(&txt, password);
+                if let Some(output) = args.get_one::<String>("output") {
+                    let out = ensure_extension(output, ".ct");
+                    write_file(&out, &ct).unwrap();
+                    println!("saved to: {}", out);
+                } else {
+                    println!("{}", ct);
+                }
+            }
+        }
+        Some(("decrypt", args)) => {
+            let password = args.get_one::<String>("password").unwrap();
+            if let Some(text) = args.get_one::<String>("text") {
+                let pt = decrypt(text, password);
+                println!("{}", pt);
+            } else if let Some(file) = args.get_one::<String>("file") {
+                let ct = read_file(file);
+                let pt = decrypt(&ct, password);
+                println!("{}", pt);
+            }
+        }
+        Some(("image-encode", args)) => {
+            let password = args.get_one::<String>("password").unwrap();
+            let output = args.get_one::<String>("output").unwrap();
+            let text = if let Some(t) = args.get_one::<String>("text") {
+                t.clone()
+            } else if let Some(f) = args.get_one::<String>("file") {
+                read_file(f)
+            } else {
+                eprintln!("Error: provide --text or --file");
+                return;
+            };
+            let ct = encrypt(&text, password);
+            let out = ensure_extension(output, ".png");
+            if let Err(e) = encode_to_image(&ct, &out) {
+                eprintln!("Error encoding image: {}", e);
+            } else {
+                println!("Image saved to: {}", out);
+            }
+        }
+        Some(("image-decode", args)) => {
+            let password = args.get_one::<String>("password").unwrap();
+            let file = args.get_one::<String>("file").unwrap();
+            match decode_from_image(file) {
+                Ok(ct) => {
+                    let pt = decrypt(&ct, password);
+                    println!("{}", pt);
+                }
+                Err(e) => eprintln!("Error decoding image: {}", e),
+            }
+        }
+        Some(("image-encode-selected", args)) => {
+            let password = args.get_one::<String>("password").unwrap();
+            let output = args.get_one::<String>("output").unwrap();
+            let background = args.get_one::<String>("background").unwrap();
+            let text = if let Some(t) = args.get_one::<String>("text") {
+                t.clone()
+            } else if let Some(f) = args.get_one::<String>("file") {
+                read_file(f)
+            } else {
+                eprintln!("Error: provide --text or --file");
+                return;
+            };
+            let ct = encrypt(&text, password);
+            let out = ensure_extension(output, ".png");
+            if let Err(e) = encode_to_selected_image(&ct, background, &out) {
+                eprintln!("Error encoding image: {}", e);
+            } else {
+                println!("Image saved to: {}", out);
+            }
+        }
+        _ => {
+            eprintln!("Use --help for usage information");
         }
     }
 }

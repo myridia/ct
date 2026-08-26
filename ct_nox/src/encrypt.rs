@@ -1,23 +1,8 @@
 use std::iter::repeat;
 use crypto::aead::{AeadEncryptor};
 use crypto::aes_gcm::AesGcm;
- 
-/// gets a valid key. This must be exactly 16 bytes. if less than 16 bytes, it will be padded with 0.
-/// If more than 16 bytes, it will be truncated
-fn get_valid_key(key: &str) -> Vec<u8> {
-    let mut bytes = key.as_bytes().to_vec();
-    if bytes.len() < 16 {
-        for _j in 0..(16 - bytes.len()) {
-            bytes.push(0x00);
-        }
-    } else if bytes.len() > 16 {
-        bytes = bytes[0..16].to_vec();
-    }
-    //println!("key: {:?}",bytes); 
-    bytes
-}
+use crate::get_valid_key;
 
- 
 /// Creates an initial vector (iv). This is also called a nonce
 fn get_iv(size: usize) -> Vec<u8> {
     let mut iv = vec![];
@@ -25,10 +10,10 @@ fn get_iv(size: usize) -> Vec<u8> {
         let r = rand::random();
         iv.push(r);
     }
- 
+
     iv
 }
- 
+
 ///encrypt "data" using "password" as the password
 /// Output is [hexNonce]/[hexCipher]/[hexMac] (nonce and iv are the same thing)
 pub fn encrypt(_text: &str, password: &str) -> String {
