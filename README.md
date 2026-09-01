@@ -1,3 +1,5 @@
+<img src="ct.svg" alt="ct" width="120">
+
 # <img src="pages/public/img/ct.png" width="100" height="100"> Ct
 
 
