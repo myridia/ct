@@ -15,7 +15,7 @@ permissions:
 jobs:
   Build:
     runs-on: macos-15
-    if: github.repository_owner == 'myridiax'
+    if: github.repository_owner == 'myridia'
 
     steps:
       - name: Install Rust
