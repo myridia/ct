@@ -15,7 +15,7 @@ permissions:
 jobs:
   Build:
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'myridiax'
+    if: github.repository_owner == 'myridia'
 
     steps:
       - name: Install
