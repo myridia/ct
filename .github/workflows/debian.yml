@@ -15,7 +15,7 @@ permissions:
 jobs:
   Build:
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'myridiax'
+    if: github.repository_owner == 'myridia'
 
     steps:
       - name: Install
@@ -39,7 +39,7 @@ jobs:
           cp target/release/ct target/release/ct_linux
 
       - name: Release
-        if: github.repository_owner == 'myridiax'                  
+        if: github.repository_owner == 'myridia'                  
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
