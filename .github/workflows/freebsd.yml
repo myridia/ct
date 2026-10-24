@@ -1,10 +1,11 @@
-name: Build FreeBSD Release
+name: FreeBSD
 on:
   workflow_run:
-    workflows: ["release_linux"]
+    workflows: ["Linux"]
     types:
       - completed
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: write
   pull-requests: write 
@@ -38,18 +39,15 @@ jobs:
           rustup target list
           cargo build --target x86_64-unknown-freebsd --release 
           ls target/x86_64-unknown-freebsd/release
-          cp target/x86_64-unknown-freebsd/release/mtranslate target/x86_64-unknown-freebsd/release/mtranslate_freebsd
+          cp target/x86_64-unknown-freebsd/release/ct target/x86_64-unknown-freebsd/release/ct_freebsd
           #ls target/x86_64-unknown-freebsd/release -all
 
           
     - name: Upload freeBSD Binary to release
       uses: svenstaro/upload-release-action@v2
       with:
-        run: | 
-          ls target/x86_64-unknown-freebsd/release -all
-          file target/x86_64-unknown-freebsd/release/mtranslate_freebsd 
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file:  target/x86_64-unknown-freebsd/release/mtranslate_freebsd
+        file: target/x86_64-unknown-freebsd/release/ct_freebsd
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
