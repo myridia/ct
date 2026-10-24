@@ -111,6 +111,15 @@ cargo build --target x86_64-pc-windows-gnu --release
 PATH="$(pwd)/osxcross/target/bin:$PATH" cargo build --target x86_64-apple-darwin
 ```
 
+## CI
+
+`.github/workflows/`:
+
+- `control.yml` — manual dispatcher (`Build Control`): choose `all` or one target, calls the others as reusable workflows (`workflow_call`).
+- `linux.yml`, `macos.yml`, `windows.yml`, `msix.yml` — per-target builds, also run on push to `main` / tags.
+- `freebsd.yml` — chained after `Linux` via `workflow_run`, also callable manually.
+- In the controller, `msix` runs after `windows` (`needs`), so it packages the freshly built `ct.exe`.
+
 ## Conventions
 
 - **No comments in code unless asked.**

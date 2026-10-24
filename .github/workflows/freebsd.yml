@@ -5,6 +5,7 @@ on:
     types:
       - completed
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: write
   pull-requests: write 
