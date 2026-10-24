@@ -32,14 +32,13 @@ jobs:
           pkg install -y curl 
           pkg install -y cmake 
           
-        name: install rustup in freebsd
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           . "$HOME/.cargo/env"
           rustup target list
-          cargo build --target x86_64-unknown-freebsd --release 
+          cargo build -p ct_nox --target x86_64-unknown-freebsd --release
           ls target/x86_64-unknown-freebsd/release
-          cp target/x86_64-unknown-freebsd/release/ct target/x86_64-unknown-freebsd/release/ct_freebsd
+          cp target/x86_64-unknown-freebsd/release/ct_nox target/x86_64-unknown-freebsd/release/ct_nox_freebsd
           #ls target/x86_64-unknown-freebsd/release -all
 
           
@@ -47,7 +46,7 @@ jobs:
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: target/x86_64-unknown-freebsd/release/ct_freebsd
+        file: target/x86_64-unknown-freebsd/release/ct_nox_freebsd
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
