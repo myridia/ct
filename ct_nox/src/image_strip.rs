@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{BufReader, BufWriter};
 
 const STRIP_DEPTH: i32 = 8;
 
@@ -45,7 +45,7 @@ fn frame_columns(image_size: u32) -> Vec<(u32, u32, i32, i32)> {
 fn overlay_logo(pixels: &mut [u8], logo_bytes: &[u8], image_size: u32) {
     let decoder = png::Decoder::new(std::io::Cursor::new(logo_bytes));
     let mut reader = decoder.read_info().unwrap();
-    let mut buf = vec![0u8; reader.output_buffer_size()];
+    let mut buf = vec![0u8; reader.output_buffer_size().expect("image too large")];
     let info = reader.next_frame(&mut buf).unwrap();
     let logo = &buf[..info.buffer_size()];
     let logo_w = info.width;
@@ -124,9 +124,9 @@ pub fn encode_to_selected_image(
     output_path: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let bg_file = File::open(bg_path)?;
-    let bg_decoder = png::Decoder::new(bg_file);
+    let bg_decoder = png::Decoder::new(BufReader::new(bg_file));
     let mut bg_reader = bg_decoder.read_info()?;
-    let mut bg_buf = vec![0u8; bg_reader.output_buffer_size()];
+    let mut bg_buf = vec![0u8; bg_reader.output_buffer_size().ok_or("image too large")?];
     let bg_info = bg_reader.next_frame(&mut bg_buf)?;
     let raw = &bg_buf[..bg_info.buffer_size()];
     let bg_w = bg_info.width;
@@ -218,9 +218,9 @@ pub fn encode_to_selected_image(
 
 pub fn decode_from_image(input_path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let file = File::open(input_path)?;
-    let decoder = png::Decoder::new(file);
+    let decoder = png::Decoder::new(BufReader::new(file));
     let mut reader = decoder.read_info()?;
-    let mut buf = vec![0u8; reader.output_buffer_size()];
+    let mut buf = vec![0u8; reader.output_buffer_size().ok_or("image too large")?];
     let info = reader.next_frame(&mut buf)?;
     let pixels = &buf[..info.buffer_size()];
     let image_size = info.width;
