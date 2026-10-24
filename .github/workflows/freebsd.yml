@@ -1,9 +1,9 @@
 name: FreeBSD
 on:
-  workflow_run:
-    workflows: ["Linux"]
-    types:
-      - completed
+  # workflow_run:
+  #   workflows: ["Linux"]
+  #   types:
+  #     - completed
   workflow_dispatch:
   workflow_call:
 permissions:
