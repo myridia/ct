@@ -1,4 +1,4 @@
-name: Build FreeBSD Release
+name: FreeBSD
 on:
   workflow_run:
     workflows: ["release_linux"]
