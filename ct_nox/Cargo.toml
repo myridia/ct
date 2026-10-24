@@ -7,7 +7,7 @@ rust-version = "1.94.1"
 [dependencies]
 clap = {version='*', features = ["cargo"]}
 hex = "*"
-rust-crypto = "*"
+aes-gcm = "0.10"
 rand = "*"
 png = "0.18"
 

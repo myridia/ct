@@ -20,6 +20,12 @@ pub fn save_last_dir(dir: &str) {
     write_config(&config);
 }
 
+pub fn save_toolbar(buttons: &[String]) {
+    let mut config = get_config();
+    config.toolbar = buttons.to_vec();
+    write_config(&config);
+}
+
 fn write_config(config: &AppConfig) {
     let toml = toml::to_string(config).unwrap();
     let home = my_home().unwrap().unwrap();
@@ -46,6 +52,7 @@ pub fn get_config() -> AppConfig {
             AppConfig {
                 language: "en-US".to_string(),
                 last_dir: String::new(),
+                toolbar: default_toolbar(),
             }
         }
     };
@@ -76,6 +83,17 @@ pub struct AppConfig {
     pub language: String,
     #[serde(default)]
     pub last_dir: String,
+    #[serde(default = "default_toolbar")]
+    pub toolbar: Vec<String>,
+}
+
+fn default_toolbar() -> Vec<String> {
+    vec![
+        "open".to_string(),
+        "save".to_string(),
+        "search".to_string(),
+        "close".to_string(),
+    ]
 }
 
 impl Default for AppConfig {
@@ -88,6 +106,7 @@ impl Default for AppConfig {
         Self {
             language: lang,
             last_dir: String::new(),
+            toolbar: default_toolbar(),
         }
     }
 }

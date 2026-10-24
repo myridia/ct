@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 extern crate ct_nox;
-use ct::config::{get_config, save_config, save_last_dir};
+use ct::config::{get_config, save_config, save_last_dir, save_toolbar};
 use ct::icon::get_icon;
 use ct_nox::ct_nox::{read_file, write_file};
 use ct_nox::decrypt::decrypt;
@@ -76,6 +76,7 @@ struct CT {
     cursor2: usize,
     _password: String,
     last_dir: String,
+    toolbar: Vec<String>,
 
     search_bar: bool,
     show_popup: bool,
@@ -84,6 +85,7 @@ struct CT {
     r: Range<usize>,
     panel_central: bool,
     panel_setting: bool,
+    show_toolbar_window: bool,
     selected_language: String,
     language_map: BTreeMap<String, String>,
     open: String,
@@ -526,6 +528,7 @@ impl Default for CT {
             popup_position: Pos2 { x: 0.0, y: 0.0 },
             panel_central: true,
             panel_setting: false,
+            show_toolbar_window: false,
             selected_language: config.language,
             language_map: language_map,
             open: open,
@@ -549,6 +552,7 @@ impl Default for CT {
             hide_password: hide_password,
             password: password,
             last_dir: config.last_dir,
+            toolbar: config.toolbar,
         }
     }
 }
@@ -645,123 +649,131 @@ impl eframe::App for CT {
                     }
                 });
 
+                let all_buttons: [(&str, String); 10] = [
+                    ("open", self.open.clone()),
+                    ("save", self.save.clone()),
+                    ("export_image", "Export Image".to_string()),
+                    ("import_image", "Import Image".to_string()),
+                    ("export_selected", "Export Selected".to_string()),
+                    ("cut", self.cut.clone()),
+                    ("copy", self.copy.clone()),
+                    ("paste", self.paste.clone()),
+                    ("search", self.search.clone()),
+                    ("close", self.close.clone()),
+                ];
+                let visible_buttons: Vec<(&str, String)> = all_buttons
+                    .into_iter()
+                    .filter(|(key, _)| self.toolbar.iter().any(|b| b.as_str() == *key))
+                    .collect();
+
                 ui.horizontal(|ui| {
-                    let num_buttons = 10.0;
-                    let spacing = ui.spacing().item_spacing.x;
-                    let total_spacing = spacing * (num_buttons - 1.0);
+                    let num_buttons = visible_buttons.len() as f32;
+                    if num_buttons > 0.0 {
+                        let spacing = ui.spacing().item_spacing.x;
+                        let total_spacing = spacing * (num_buttons - 1.0);
 
-                    let available_width = ui.available_width();
-                    let button_width = (available_width - total_spacing) / num_buttons;
-                    let button_height = 20.0;
-                    let button_size = egui::Vec2::new(button_width, button_height);
+                        let available_width = ui.available_width();
+                        let button_width = (available_width - total_spacing) / num_buttons;
+                        let button_height = 20.0;
+                        let button_size = egui::Vec2::new(button_width, button_height);
 
-                    if ui
-                        .add(egui::Button::new(&self.open).min_size(button_size))
-                        .clicked()
-                    {
-                        if let Some(path) = self.pick_file_dialog(rfd::FileDialog::new()) {
-                            self.picked_path = path.display().to_string();
-                            let ct = read_file(&self.picked_path.clone());
-                            self.text = decrypt(&ct, &self._password);
-                        }
-                    }
-
-                    if ui
-                        .add(egui::Button::new(&self.save).min_size(button_size))
-                        .clicked()
-                    {
-                        if let Some(path) = self.save_file_dialog(rfd::FileDialog::new()) {
-                            self.picked_path = ensure_extension(&path.display().to_string(), ".ct");
-                            let ct = encrypt(&self.text, &self._password);
-                            let _x = write_file(&self.picked_path.clone(), &ct);
-                        }
-                    }
-
-                    if ui
-                        .add(egui::Button::new("Export Image").min_size(button_size))
-                        .clicked()
-                    {
-                        if let Some(path) = self.save_file_dialog(
-                            rfd::FileDialog::new().add_filter("PNG", &["png"]),
-                        ) {
-                            let out = ensure_extension(&path.display().to_string(), ".png");
-                            let ct = encrypt(&self.text, &self._password);
-                            let _ = encode_to_image(&ct, &out);
-                        }
-                    }
-
-                    if ui
-                        .add(egui::Button::new("Import Image").min_size(button_size))
-                        .clicked()
-                    {
-                        if let Some(path) = self.pick_file_dialog(
-                            rfd::FileDialog::new().add_filter("PNG", &["png"]),
-                        ) {
-                            if let Ok(ct) = decode_from_image(&path.display().to_string()) {
-                                self.text = decrypt(&ct, &self._password);
+                        for (key, label) in visible_buttons {
+                            if ui
+                                .add(egui::Button::new(label).min_size(button_size))
+                                .clicked()
+                            {
+                                match key {
+                                    "open" => {
+                                        if let Some(path) =
+                                            self.pick_file_dialog(rfd::FileDialog::new())
+                                        {
+                                            self.picked_path = path.display().to_string();
+                                            let ct = read_file(&self.picked_path.clone());
+                                            self.text = decrypt(&ct, &self._password);
+                                        }
+                                    }
+                                    "save" => {
+                                        if let Some(path) =
+                                            self.save_file_dialog(rfd::FileDialog::new())
+                                        {
+                                            self.picked_path = ensure_extension(
+                                                &path.display().to_string(),
+                                                ".ct",
+                                            );
+                                            let ct = encrypt(&self.text, &self._password);
+                                            let _x = write_file(&self.picked_path.clone(), &ct);
+                                        }
+                                    }
+                                    "export_image" => {
+                                        if let Some(path) = self.save_file_dialog(
+                                            rfd::FileDialog::new().add_filter("PNG", &["png"]),
+                                        ) {
+                                            let out = ensure_extension(
+                                                &path.display().to_string(),
+                                                ".png",
+                                            );
+                                            let ct = encrypt(&self.text, &self._password);
+                                            let _ = encode_to_image(&ct, &out);
+                                        }
+                                    }
+                                    "import_image" => {
+                                        if let Some(path) = self.pick_file_dialog(
+                                            rfd::FileDialog::new().add_filter("PNG", &["png"]),
+                                        ) {
+                                            if let Ok(ct) =
+                                                decode_from_image(&path.display().to_string())
+                                            {
+                                                self.text = decrypt(&ct, &self._password);
+                                            }
+                                        }
+                                    }
+                                    "export_selected" => {
+                                        if let Some(bg) = self.pick_file_dialog(
+                                            rfd::FileDialog::new().add_filter("PNG", &["png"]),
+                                        ) {
+                                            if let Some(out) = self.save_file_dialog(
+                                                rfd::FileDialog::new()
+                                                    .add_filter("PNG", &["png"]),
+                                            ) {
+                                                let out_path = ensure_extension(
+                                                    &out.display().to_string(),
+                                                    ".png",
+                                                );
+                                                let ct = encrypt(&self.text, &self._password);
+                                                let _ = encode_to_selected_image(
+                                                    &ct,
+                                                    &bg.display().to_string(),
+                                                    &out_path,
+                                                );
+                                            }
+                                        }
+                                    }
+                                    "cut" => {
+                                        let r = get_char_range(self.cursor1, self.cursor2);
+                                        let st = self.text.char_range(r.clone());
+                                        ui.output_mut(|o| o.copied_text = st.to_string());
+                                        self.text.delete_char_range(r.clone());
+                                    }
+                                    "copy" => {
+                                        let r = get_char_range(self.cursor1, self.cursor2);
+                                        let st = self.text.char_range(r.clone());
+                                        ui.output_mut(|o| o.copied_text = st.to_string());
+                                    }
+                                    "paste" => {
+                                        let txt = cli_clipboard::get_contents().unwrap();
+                                        let r = get_char_range(self.cursor1, self.cursor2);
+                                        self.text.insert_text(&txt, r.start);
+                                    }
+                                    "search" => {
+                                        self.search_bar = !self.search_bar;
+                                    }
+                                    "close" => {
+                                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                                    }
+                                    _ => {}
+                                }
                             }
                         }
-                    }
-
-                    if ui
-                        .add(egui::Button::new("Export Selected").min_size(button_size))
-                        .clicked()
-                    {
-                        if let Some(bg) = self.pick_file_dialog(
-                            rfd::FileDialog::new().add_filter("PNG", &["png"]),
-                        ) {
-                            if let Some(out) = self.save_file_dialog(
-                                rfd::FileDialog::new().add_filter("PNG", &["png"]),
-                            ) {
-                                let out_path = ensure_extension(&out.display().to_string(), ".png");
-                                let ct = encrypt(&self.text, &self._password);
-                                let _ = encode_to_selected_image(
-                                    &ct,
-                                    &bg.display().to_string(),
-                                    &out_path,
-                                );
-                            }
-                        }
-                    }
-
-                    if ui
-                        .add(egui::Button::new(&self.cut).min_size(button_size))
-                        .clicked()
-                    {
-                        let r = get_char_range(self.cursor1, self.cursor2);
-                        let st = self.text.char_range(r.clone());
-                        ui.output_mut(|o| o.copied_text = st.to_string());
-                        self.text.delete_char_range(r.clone());
-                    }
-
-                    if ui
-                        .add(egui::Button::new(&self.copy).min_size(button_size))
-                        .clicked()
-                    {
-                        let r = get_char_range(self.cursor1, self.cursor2);
-                        let st = self.text.char_range(r.clone());
-                        ui.output_mut(|o| o.copied_text = st.to_string());
-                    }
-                    if ui
-                        .add(egui::Button::new(&self.paste).min_size(button_size))
-                        .clicked()
-                    {
-                        let txt = cli_clipboard::get_contents().unwrap();
-                        let r = get_char_range(self.cursor1, self.cursor2);
-                        self.text.insert_text(&txt, r.start);
-                    }
-                    if ui
-                        .add(egui::Button::new(&self.search).min_size(button_size))
-                        .clicked()
-                    {
-                        self.search_bar = !self.search_bar;
-                    }
-
-                    if ui
-                        .add(egui::Button::new(&self.close).min_size(button_size))
-                        .clicked()
-                    {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                 });
 
@@ -835,6 +847,39 @@ impl eframe::App for CT {
                 });
             });
         };
+        if self.show_toolbar_window {
+            let mut open = self.show_toolbar_window;
+            egui::Window::new("Toolbar")
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    let toolbar_labels: [(&str, String); 10] = [
+                        ("open", self.open.clone()),
+                        ("save", self.save.clone()),
+                        ("export_image", "Export Image".to_string()),
+                        ("import_image", "Import Image".to_string()),
+                        ("export_selected", "Export Selected".to_string()),
+                        ("cut", self.cut.clone()),
+                        ("copy", self.copy.clone()),
+                        ("paste", self.paste.clone()),
+                        ("search", self.search.clone()),
+                        ("close", self.close.clone()),
+                    ];
+                    for (key, label) in toolbar_labels {
+                        let mut checked = self.toolbar.iter().any(|b| b.as_str() == key);
+                        if ui.checkbox(&mut checked, label).changed() {
+                            if checked {
+                                if !self.toolbar.iter().any(|b| b.as_str() == key) {
+                                    self.toolbar.push(key.to_string());
+                                }
+                            } else {
+                                self.toolbar.retain(|b| b.as_str() != key);
+                            }
+                            save_toolbar(&self.toolbar);
+                        }
+                    }
+                });
+            self.show_toolbar_window = open;
+        }
         if self.show_popup {
             let popup_id = egui::Id::new("my_popup");
             egui::Area::new(popup_id)
@@ -981,6 +1026,10 @@ impl eframe::App for CT {
                         self.panel_central = false;
                         self.panel_setting = true;
 
+                        ui.close_menu();
+                    }
+                    if ui.button("Toolbar").clicked() {
+                        self.show_toolbar_window = true;
                         ui.close_menu();
                     }
                 });

@@ -11,7 +11,7 @@
 
 - **Language**: Rust (edition 2024, rust-version 1.94.1)
 - **GUI**: eframe 0.26.2 (egui)
-- **Crypto**: `rust-crypto` crate (AES-128-GCM via `AesGcm`)
+- **Crypto**: `aes-gcm` crate (AES-128-GCM)
 - **CLI**: `clap` (arg parsing in ct_nox)
 - **i18n**: `i18n-embed` + `i18n-embed-fl` (Fluent system), 95 languages
 - **Config**: TOML (`~/.ct/config.toml`), `serde` + `toml` crates
@@ -28,7 +28,7 @@ ct/
 ├── src/                 # GUI app (main crate)
 │   ├── main.rs          # eframe entry, CT struct, UI layout
 │   ├── lib.rs           # re-exports config, icon
-│   ├── config.rs        # ~/.ct/config.toml read/write (AppConfig { language })
+│   ├── config.rs        # ~/.ct/config.toml read/write (AppConfig { language, last_dir, toolbar })
 │   ├── icon.rs          # hardcoded 64x64 RGBA icon
 │   └── assets/fonts/    # 19 .ttf/.otf fonts for international scripts
 ├── ct_nox/              # CLI subcrate
@@ -87,8 +87,10 @@ ct_nox image-decode -f out.png -p "password"
 Stored at `~/.ct/config.toml`:
 ```toml
 language = "en-US"
+last_dir = ""
+toolbar = ["open", "save", "search", "close"]
 ```
-Created automatically on first run. Defaults to system locale if available in i18n/, else `en-US`.
+Created automatically on first run. Defaults to system locale if available in i18n/, else `en-US`. `toolbar` lists the buttons shown in the button row; edit it in **Settings → Toolbar**. Missing fields fall back to defaults.
 
 ## Build & Run
 
