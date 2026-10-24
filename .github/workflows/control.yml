@@ -5,15 +5,15 @@ on:
       target:
         description: "What to build"
         required: true
-        default: linux
+        default: all
         type: choice
         options:
-          #- all
+          - all
           - linux
-          #- windows
-          #- macos
-          #- msix
-          #- freebsd
+          - windows
+          - macos
+          - msix
+          - freebsd
 
 permissions:
   contents: write
