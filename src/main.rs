@@ -85,6 +85,7 @@ struct CT {
     r: Range<usize>,
     panel_central: bool,
     panel_setting: bool,
+    show_toolbar_window: bool,
     selected_language: String,
     language_map: BTreeMap<String, String>,
     open: String,
@@ -527,6 +528,7 @@ impl Default for CT {
             popup_position: Pos2 { x: 0.0, y: 0.0 },
             panel_central: true,
             panel_setting: false,
+            show_toolbar_window: false,
             selected_language: config.language,
             language_map: language_map,
             open: open,
@@ -606,37 +608,6 @@ impl eframe::App for CT {
 
                 ui.add_space(20.0);
                 ui.label(format!("You selected: {}", &self.lang_name));
-
-                ui.add_space(20.0);
-                ui.separator();
-                ui.add_space(10.0);
-                ui.label(self.settings.clone());
-
-                let toolbar_labels: [(&str, String); 10] = [
-                    ("open", self.open.clone()),
-                    ("save", self.save.clone()),
-                    ("export_image", "Export Image".to_string()),
-                    ("import_image", "Import Image".to_string()),
-                    ("export_selected", "Export Selected".to_string()),
-                    ("cut", self.cut.clone()),
-                    ("copy", self.copy.clone()),
-                    ("paste", self.paste.clone()),
-                    ("search", self.search.clone()),
-                    ("close", self.close.clone()),
-                ];
-                for (key, label) in toolbar_labels {
-                    let mut checked = self.toolbar.iter().any(|b| b.as_str() == key);
-                    if ui.checkbox(&mut checked, label).changed() {
-                        if checked {
-                            if !self.toolbar.iter().any(|b| b.as_str() == key) {
-                                self.toolbar.push(key.to_string());
-                            }
-                        } else {
-                            self.toolbar.retain(|b| b.as_str() != key);
-                        }
-                        save_toolbar(&self.toolbar);
-                    }
-                }
             });
         } else if self.panel_central == true && self.panel_setting == false {
             egui::CentralPanel::default().show(ctx, |ui| {
@@ -876,6 +847,39 @@ impl eframe::App for CT {
                 });
             });
         };
+        if self.show_toolbar_window {
+            let mut open = self.show_toolbar_window;
+            egui::Window::new("Toolbar")
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    let toolbar_labels: [(&str, String); 10] = [
+                        ("open", self.open.clone()),
+                        ("save", self.save.clone()),
+                        ("export_image", "Export Image".to_string()),
+                        ("import_image", "Import Image".to_string()),
+                        ("export_selected", "Export Selected".to_string()),
+                        ("cut", self.cut.clone()),
+                        ("copy", self.copy.clone()),
+                        ("paste", self.paste.clone()),
+                        ("search", self.search.clone()),
+                        ("close", self.close.clone()),
+                    ];
+                    for (key, label) in toolbar_labels {
+                        let mut checked = self.toolbar.iter().any(|b| b.as_str() == key);
+                        if ui.checkbox(&mut checked, label).changed() {
+                            if checked {
+                                if !self.toolbar.iter().any(|b| b.as_str() == key) {
+                                    self.toolbar.push(key.to_string());
+                                }
+                            } else {
+                                self.toolbar.retain(|b| b.as_str() != key);
+                            }
+                            save_toolbar(&self.toolbar);
+                        }
+                    }
+                });
+            self.show_toolbar_window = open;
+        }
         if self.show_popup {
             let popup_id = egui::Id::new("my_popup");
             egui::Area::new(popup_id)
@@ -1022,6 +1026,10 @@ impl eframe::App for CT {
                         self.panel_central = false;
                         self.panel_setting = true;
 
+                        ui.close_menu();
+                    }
+                    if ui.button("Toolbar").clicked() {
+                        self.show_toolbar_window = true;
                         ui.close_menu();
                     }
                 });
