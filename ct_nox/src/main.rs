@@ -1,5 +1,5 @@
 use clap::{Arg, Command};
-use ct_nox::ct_nox::{read_file, write_file};
+use ct_nox::ct_nox::{encrypt_dir, read_file, write_file};
 use ct_nox::decrypt::decrypt;
 use ct_nox::encrypt::encrypt;
 use ct_nox::image_strip::{encode_to_image, encode_to_selected_image, decode_from_image};
@@ -59,6 +59,12 @@ fn main() {
                 .arg(Arg::new("background").short('b').long("background").required(true))
                 .arg(Arg::new("password").short('p').long("password").required(true))
                 .arg(Arg::new("output").short('o').long("output").required(true)),
+        )
+        .subcommand(
+            Command::new("encrypt-folder")
+                .about("Encrypt all files in a folder recursively")
+                .arg(Arg::new("dir").short('d').long("dir").required(true))
+                .arg(Arg::new("password").short('p').long("password").required(true)),
         )
         .get_matches();
 
@@ -146,6 +152,12 @@ fn main() {
             } else {
                 println!("Image saved to: {}", out);
             }
+        }
+        Some(("encrypt-folder", args)) => {
+            let password = args.get_one::<String>("password").unwrap();
+            let dir = args.get_one::<String>("dir").unwrap();
+            let saved = encrypt_dir(dir, password);
+            println!("encrypted {} files", saved.len());
         }
         _ => {
             eprintln!("Use --help for usage information");

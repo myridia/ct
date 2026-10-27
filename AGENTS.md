@@ -12,7 +12,7 @@
 - **Language**: Rust (edition 2024, rust-version 1.94.1)
 - **GUI**: eframe 0.26.2 (egui)
 - **Crypto**: `aes-gcm` crate (AES-128-GCM)
-- **CLI**: `clap` (arg parsing in ct_nox)
+- **CLI**: `clap` (arg parsing in ct_nox) — subcommands: `encrypt`, `decrypt`, `image-encode`, `image-decode`, `image-encode-selected`, `encrypt-folder`
 - **i18n**: `i18n-embed` + `i18n-embed-fl` (Fluent system), 95 languages
 - **Config**: TOML (`~/.ct/config.toml`), `serde` + `toml` crates
 - **Clipboard**: `cli-clipboard`

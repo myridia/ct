@@ -3,7 +3,7 @@
 extern crate ct_nox;
 use ct::config::{get_config, save_config, save_last_dir, save_toolbar};
 use ct::icon::get_icon;
-use ct_nox::ct_nox::{read_file, write_file};
+use ct_nox::ct_nox::{encrypt_dir, read_file, write_file};
 use ct_nox::decrypt::decrypt;
 use ct_nox::encrypt::encrypt;
 use ct_nox::image_strip::{encode_to_image, encode_to_selected_image, decode_from_image};
@@ -137,6 +137,21 @@ impl CT {
             d = d.set_directory(&self.last_dir);
         }
         let result = d.save_file();
+        if let Some(ref path) = result {
+            if let Some(parent) = path.parent() {
+                self.last_dir = parent.display().to_string();
+                save_last_dir(&self.last_dir);
+            }
+        }
+        result
+    }
+
+    fn pick_folder_dialog(&mut self, dialog: rfd::FileDialog) -> Option<std::path::PathBuf> {
+        let mut d = dialog;
+        if !self.last_dir.is_empty() {
+            d = d.set_directory(&self.last_dir);
+        }
+        let result = d.pick_folder();
         if let Some(ref path) = result {
             if let Some(parent) = path.parent() {
                 self.last_dir = parent.display().to_string();
@@ -989,6 +1004,16 @@ impl eframe::App for CT {
                                     &out_path,
                                 );
                             }
+                        }
+                        ui.close_menu();
+                    }
+                    if ui.button("Encrypt Folder to CT").clicked() {
+                        self.panel_central = true;
+                        self.panel_setting = false;
+                        if let Some(dir) = self.pick_folder_dialog(rfd::FileDialog::new()) {
+                            let dir_str = dir.display().to_string();
+                            let saved = encrypt_dir(&dir_str, &self._password);
+                            self.status_text = format!("encrypted {} files", saved.len());
                         }
                         ui.close_menu();
                     }
