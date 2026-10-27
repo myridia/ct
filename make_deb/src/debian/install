@@ -1,0 +1,2 @@
+target/release/ct usr/bin/
+target/release/ct_nox usr/bin/

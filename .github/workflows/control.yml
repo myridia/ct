@@ -10,6 +10,7 @@ on:
         options:
           - all
           - linux
+          - debian
           - windows
           - macos
           - msix
@@ -22,6 +23,11 @@ jobs:
   linux:
     if: inputs.target == 'all' || inputs.target == 'linux'
     uses: ./.github/workflows/linux.yml
+    secrets: inherit
+
+  debian:
+    if: inputs.target == 'all' || inputs.target == 'debian'
+    uses: ./.github/workflows/debian.yml
     secrets: inherit
 
   windows:
