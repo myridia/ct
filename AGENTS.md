@@ -44,6 +44,7 @@ ct/
 │   └── ct_nox           # prebuilt binary
 ├── i18n/                # 95 Fluent .ftl locale dirs (e.g. en-US/ct.ftl)
 ├── pages/public/        # favicon, images
+├── make_deb/            # Debian packaging (src/debian, symlinks to the crate)
 ├── test/                # experiments: hello_world, rust, java, kotlin, filedialog
 ├── en-US.ftl            # root Fluent file (used by i18n-embed at build)
 ├── i18n.toml            # i18n config: fallback_language = "en-US"
@@ -104,6 +105,9 @@ sudo apt-get install -y libclang-dev libgtk-3-dev libxcb-render0-dev libxcb-shap
 # Release build (Linux)
 cargo build --release
 
+# Debian package (needs debhelper, fakeroot, GTK/X11 dev libs)
+cd make_deb/src && dpkg-buildpackage -us -uc -b
+
 # Cross-compile Windows
 rustup target add x86_64-pc-windows-gnu
 sudo apt install mingw-w64
@@ -119,6 +123,7 @@ PATH="$(pwd)/osxcross/target/bin:$PATH" cargo build --target x86_64-apple-darwin
 
 - `control.yml` — manual dispatcher (`Build Control`): choose a target, calls the others as reusable workflows (`workflow_call`).
 - `linux.yml` — the only workflow with a `push` trigger (`main` / tags); also callable.
+- `debian.yml` — builds `make_deb/src` with `dpkg-buildpackage` and releases `make_deb/ct_0.1.0-1_amd64.deb`.
 - `macos.yml`, `windows.yml`, `msix.yml`, `freebsd.yml` — manual / controller only.
 - In the controller, `msix` runs after `windows` (`needs`), so it packages the freshly built `ct.exe`.
 
