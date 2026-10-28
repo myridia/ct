@@ -43,8 +43,12 @@ ct/
 │   ├── run.sh, add.sh, remove.sh, revert.sh
 │   └── ct_nox           # prebuilt binary
 ├── i18n/                # 95 Fluent .ftl locale dirs (e.g. en-US/ct.ftl)
+<<<<<<< HEAD
+├── pages/public/        # favicon, images, website (index.html)
+=======
 ├── pages/public/        # favicon, images
 ├── make_deb/            # Debian packaging (src/debian, symlinks to the crate)
+>>>>>>> 2db51b7a84017bc168d77c7cc3b7ece0855351b5
 ├── test/                # experiments: hello_world, rust, java, kotlin, filedialog
 ├── en-US.ftl            # root Fluent file (used by i18n-embed at build)
 ├── i18n.toml            # i18n config: fallback_language = "en-US"

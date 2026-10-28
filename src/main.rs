@@ -708,7 +708,10 @@ impl eframe::App for CT {
                                         }
                                     }
                                     "save" => {
-                                        if let Some(path) =
+                                        if !self.picked_path.is_empty() {
+                                            let ct = encrypt(&self.text, &self._password);
+                                            let _ = write_file(&self.picked_path.clone(), &ct);
+                                        } else if let Some(path) =
                                             self.save_file_dialog(rfd::FileDialog::new())
                                         {
                                             self.picked_path = ensure_extension(
@@ -716,7 +719,7 @@ impl eframe::App for CT {
                                                 ".ct",
                                             );
                                             let ct = encrypt(&self.text, &self._password);
-                                            let _x = write_file(&self.picked_path.clone(), &ct);
+                                            let _ = write_file(&self.picked_path.clone(), &ct);
                                         }
                                     }
                                     "export_image" => {
@@ -946,10 +949,23 @@ impl eframe::App for CT {
                     if ui.button("Save CT File").clicked() {
                         self.panel_central = true;
                         self.panel_setting = false;
+                        if !self.picked_path.is_empty() {
+                            let ct = encrypt(&self.text, &self._password);
+                            let _ = write_file(&self.picked_path.clone(), &ct);
+                        } else if let Some(path) = self.save_file_dialog(rfd::FileDialog::new()) {
+                            self.picked_path = ensure_extension(&path.display().to_string(), ".ct");
+                            let ct = encrypt(&self.text, &self._password);
+                            let _ = write_file(&self.picked_path.clone(), &ct);
+                        }
+                        ui.close_menu();
+                    }
+                    if ui.button("Save As CT File").clicked() {
+                        self.panel_central = true;
+                        self.panel_setting = false;
                         if let Some(path) = self.save_file_dialog(rfd::FileDialog::new()) {
                             self.picked_path = ensure_extension(&path.display().to_string(), ".ct");
                             let ct = encrypt(&self.text, &self._password);
-                            let _x = write_file(&self.picked_path.clone(), &ct);
+                            let _ = write_file(&self.picked_path.clone(), &ct);
                         }
                         ui.close_menu();
                     }
@@ -1061,9 +1077,11 @@ impl eframe::App for CT {
                 ui.menu_button(self.about_us.clone(), |ui| {
                     if ui.button(&self.help).clicked() {
                         ui.close_menu();
+                        open_url("https://ct.myridia.com");
                     }
                     if ui.button(&self.about_us).clicked() {
                         ui.close_menu();
+                        open_url("https://myridia.com");
                     }
                 });
             });
@@ -1077,6 +1095,25 @@ impl eframe::App for CT {
             });
         });
     }
+}
+
+fn open_url(url: &str) {
+    open_url_impl(url);
+}
+
+#[cfg(target_os = "windows")]
+fn open_url_impl(url: &str) {
+    let _ = std::process::Command::new("cmd").args(["/C", "start", "", url]).spawn();
+}
+
+#[cfg(target_os = "macos")]
+fn open_url_impl(url: &str) {
+    let _ = std::process::Command::new("open").arg(url).spawn();
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+fn open_url_impl(url: &str) {
+    let _ = std::process::Command::new("xdg-open").arg(url).spawn();
 }
 
 fn ensure_extension(path: &str, ext: &str) -> String {
