@@ -1077,9 +1077,11 @@ impl eframe::App for CT {
                 ui.menu_button(self.about_us.clone(), |ui| {
                     if ui.button(&self.help).clicked() {
                         ui.close_menu();
+                        open_url("https://ct.myridia.com");
                     }
                     if ui.button(&self.about_us).clicked() {
                         ui.close_menu();
+                        open_url("https://myridia.com");
                     }
                 });
             });
@@ -1093,6 +1095,25 @@ impl eframe::App for CT {
             });
         });
     }
+}
+
+fn open_url(url: &str) {
+    open_url_impl(url);
+}
+
+#[cfg(target_os = "windows")]
+fn open_url_impl(url: &str) {
+    let _ = std::process::Command::new("cmd").args(["/C", "start", "", url]).spawn();
+}
+
+#[cfg(target_os = "macos")]
+fn open_url_impl(url: &str) {
+    let _ = std::process::Command::new("open").arg(url).spawn();
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+fn open_url_impl(url: &str) {
+    let _ = std::process::Command::new("xdg-open").arg(url).spawn();
 }
 
 fn ensure_extension(path: &str, ext: &str) -> String {
