@@ -111,6 +111,8 @@ struct CT {
     hide_password: String,
     password: String,
     lang_name: String,
+    last_copied_text: String,
+    open_file: String,
 }
 
 //    fn new(_cc: &eframe::CreationContext<'_>) -> Self {
@@ -531,6 +533,8 @@ impl Default for CT {
             picked_path: "".to_string(),
             status_text: "".to_string(),
             lang_name: "".to_string(),
+            last_copied_text: "".to_string(),
+            open_file: "".to_string(),
             cursor1: 0,
             cursor2: 0,
             _password: "".to_string(),
@@ -703,6 +707,7 @@ impl eframe::App for CT {
                                             self.pick_file_dialog(rfd::FileDialog::new())
                                         {
                                             self.picked_path = path.display().to_string();
+                                            self.open_file = self.picked_path.clone();
                                             let ct = read_file(&self.picked_path.clone());
                                             self.text = decrypt(&ct, &self._password);
                                         }
@@ -855,6 +860,14 @@ impl eframe::App for CT {
                         if let Some(ccursor) = state.cursor.char_range() {
                             self.cursor1 = ccursor.secondary.index;
                             self.cursor2 = ccursor.primary.index;
+                            let r = get_char_range(self.cursor1, self.cursor2);
+                            if r.start != r.end {
+                                let selected = self.text.char_range(r).to_string();
+                                if selected != self.last_copied_text {
+                                    ui.output_mut(|o| o.copied_text = selected.clone());
+                                    self.last_copied_text = selected;
+                                }
+                            }
                         }
                     }
 
@@ -940,6 +953,7 @@ impl eframe::App for CT {
                         self.panel_setting = false;
                         if let Some(path) = self.pick_file_dialog(rfd::FileDialog::new()) {
                             self.picked_path = path.display().to_string();
+                            self.open_file = self.picked_path.clone();
                             let ct = read_file(&self.picked_path.clone());
                             self.text = decrypt(&ct, &self._password);
                         }
@@ -974,6 +988,7 @@ impl eframe::App for CT {
                         self.panel_setting = false;
                         if let Some(path) = self.pick_file_dialog(rfd::FileDialog::new()) {
                             self.picked_path = path.display().to_string();
+                            self.open_file = self.picked_path.clone();
                             self.text = read_file(&self.picked_path.clone());
                         }
 
@@ -1091,6 +1106,7 @@ impl eframe::App for CT {
             ui.horizontal(|ui| {
                 ui.label(format!("{0}: {1}", &self.status, self.status_text));
                 ui.separator();
+                ui.label(&self.open_file);
                 //ui.add(egui::ProgressBar::new(self.progress).show_percentage());
             });
         });
