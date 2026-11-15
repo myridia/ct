@@ -2,7 +2,7 @@
 
 ## What it is
 
-**ct** is a Rust desktop text editor with built-in AES-128-GCM encryption. It encrypts/decrypts text files using a password, producing a hex-encoded string in the format `nonce/ciphertext/mac`. Two variants exist:
+**ct** is a Rust desktop text editor with built-in AES-128-GCM encryption. It derives the AES key from the password with PBKDF2-HMAC-SHA256 and a random salt, producing a hex-encoded string in the format `v2/pbkdf2-sha256/iterations/salt/nonce/ciphertext/mac`. The old `nonce/ciphertext/mac` format is still read. Two variants exist:
 
 - **ct** — GUI app (eframe/egui) with file dialogs, clipboard, search, i18n
 - **ct_nox** — CLI/headless version, same crypto, usable from other programs
@@ -35,20 +35,16 @@ ct/
 │   ├── Cargo.toml
 │   ├── src/
 │   │   ├── main.rs      # clap CLI, encrypt/decrypt by args
-│   │   ├── lib.rs       # re-exports modules + shared get_valid_key()
+│   │   ├── lib.rs       # re-exports modules + PBKDF2/random helpers + legacy key
 │   │   ├── ct_nox.rs    # read_file(), write_file()
-│   │   ├── encrypt.rs   # encrypt(text, password) -> hex_nonce/hex_cipher/hex_mac
+│   │   ├── encrypt.rs   # encrypt(text, password) -> v2/pbkdf2-sha256/...
 │   │   ├── decrypt.rs   # decrypt(ciphertext, password) -> plaintext
 │   │   └── image_strip.rs # encode text→PNG frame, decode PNG frame→text
 │   ├── run.sh, add.sh, remove.sh, revert.sh
 │   └── ct_nox           # prebuilt binary
 ├── i18n/                # 95 Fluent .ftl locale dirs (e.g. en-US/ct.ftl)
-<<<<<<< HEAD
 ├── pages/public/        # favicon, images, website (index.html)
-=======
-├── pages/public/        # favicon, images
 ├── make_deb/            # Debian packaging (src/debian, symlinks to the crate)
->>>>>>> 2db51b7a84017bc168d77c7cc3b7ece0855351b5
 ├── test/                # experiments: hello_world, rust, java, kotlin, filedialog
 ├── en-US.ftl            # root Fluent file (used by i18n-embed at build)
 ├── i18n.toml            # i18n config: fallback_language = "en-US"
@@ -61,15 +57,18 @@ ct/
 ## Crypto details
 
 - **Algorithm**: AES-128-GCM (AEAD)
-- **Key**: password bytes, padded with 0x00 to 16 bytes or truncated to 16 bytes
+- **KDF**: PBKDF2-HMAC-SHA256, 600000 iterations, UTF-8 password, 16-byte random salt
+- **Key**: 16 bytes derived from password and salt
 - **Nonce/IV**: 12 random bytes
 - **MAC**: 16 bytes (authentication tag)
-- **Output format**: `{hex_nonce}/{hex_ciphertext}/{hex_mac}`
+- **Output format**: `v2/pbkdf2-sha256/{iterations}/{hex_salt}/{hex_nonce}/{hex_ciphertext}/{hex_mac}`
+- **Legacy**: reads `{hex_nonce}/{hex_ciphertext}/{hex_mac}` (raw padded/truncated password) but never writes it
 - **Note**: decryption returns original text on failure (no error shown to user)
+- **Maintained implementations**: `ct_nox` (Rust) and `test/java/Gcm` (Java); `test/hello` and `test/rust` are historical experiments
 
 ## Image Strip (binary frame)
 
-Encodes encrypted text as a binary frame around a 256x256 PNG image. Each character = 8 pixels (1px dots), black = 1, white = 0. Bits go clockwise from top-left. ct64.png logo centered in the middle. Max capacity: 127 characters.
+Encodes encrypted text as a binary frame around a PNG image that starts at 256x256 and grows in 16-pixel steps until the ciphertext fits. Each character = 8 pixels (1px dots), black = 1, white = 0. Bits go clockwise from top-left. ct64.png logo centered in the middle.
 
 **CLI usage:**
 ```bash
@@ -85,7 +84,7 @@ ct_nox image-decode -f out.png -p "password"
 
 **GUI**: "Export as Image" and "Import from Image" buttons in toolbar + File menu.
 
-**Format**: `{hex_nonce}/{hex_ciphertext}/{hex_mac}` encoded as black/white pixels around the image perimeter.
+**Format**: `v2/pbkdf2-sha256/{iterations}/{hex_salt}/{hex_nonce}/{hex_ciphertext}/{hex_mac}` encoded as black/white pixels around the image perimeter.
 
 ## Config
 

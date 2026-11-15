@@ -1,62 +1,80 @@
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes128Gcm, Nonce};
 use std::error::Error;
-use std::io::ErrorKind;
-use std::str::from_utf8;
-use std::{io, str};
-use crate::get_valid_key;
+use std::io::{self, ErrorKind};
+use crate::{derive_key, get_valid_key, KEY_LEN, NONCE_LEN, SALT_LEN};
+
+const MAX_KDF_ITERATIONS: u32 = 2_000_000;
 
 pub fn decrypt(_text: &str, _password: &str) -> String {
-    let db = _decrypt(_text, _password);
-    if db.is_err() {
-        return _text.to_string();
-    } else {
-        let b = db.unwrap();
-        let s = from_utf8(&b).unwrap();
-        return s.to_string();
+    match _decrypt(_text, _password) {
+        Ok(b) => String::from_utf8(b).unwrap_or_else(|_| _text.to_string()),
+        Err(_) => _text.to_string(),
     }
 }
 
 fn _decrypt(iv_data_mac: &str, key: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    let (iv, data, mac) = split_iv_data_mac(iv_data_mac)?;
-    if iv.len() != 12 {
+    if iv_data_mac.starts_with("v2/") {
+        _decrypt_v2(iv_data_mac, key)
+    } else {
+        _decrypt_v1(iv_data_mac, key)
+    }
+}
+
+fn _decrypt_v2(orig: &str, password: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    let split: Vec<&str> = orig.split('/').collect();
+    if split.len() != 7 || split[0] != "v2" || split[1] != "pbkdf2-sha256" {
         return Err(Box::new(io::Error::from(ErrorKind::InvalidData)));
     }
-    let key = get_valid_key(key);
+
+    let iterations: u32 = split[2].parse()?;
+    if iterations == 0 || iterations > MAX_KDF_ITERATIONS {
+        return Err(Box::new(io::Error::from(ErrorKind::InvalidData)));
+    }
+
+    let salt = hex::decode(split[3])?;
+    let nonce = hex::decode(split[4])?;
+    let data = hex::decode(split[5])?;
+    let mac = hex::decode(split[6])?;
+    if salt.len() != SALT_LEN || nonce.len() != NONCE_LEN || mac.len() != 16 {
+        return Err(Box::new(io::Error::from(ErrorKind::InvalidData)));
+    }
+
+    let key = derive_key(password, &salt, iterations);
     let cipher = Aes128Gcm::new_from_slice(&key)
         .map_err(|_| io::Error::from(ErrorKind::InvalidData))?;
-    let nonce = Nonce::from_slice(&iv);
-    let mut cipher_text = data.clone();
+    let mut cipher_text = data;
     cipher_text.extend_from_slice(&mac);
     let plain = cipher
-        .decrypt(nonce, cipher_text.as_slice())
+        .decrypt(Nonce::from_slice(&nonce), cipher_text.as_slice())
         .map_err(|_| io::Error::from(ErrorKind::InvalidData))?;
     Ok(plain)
 }
 
-fn split_iv_data_mac(orig: &str) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Box<dyn Error>> {
-    let split: Vec<&str> = orig.split('/').into_iter().collect();
-
+fn _decrypt_v1(orig: &str, password: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+    let split: Vec<&str> = orig.split('/').collect();
     if split.len() != 3 {
-        return Err(Box::new(io::Error::from(ErrorKind::Other)));
+        return Err(Box::new(io::Error::from(ErrorKind::InvalidData)));
     }
-    let iv_res = hex::decode(split[0]);
-    if iv_res.is_err() {
-        return Err(Box::new(io::Error::from(ErrorKind::Other)));
-    }
-    let iv = iv_res.unwrap();
 
-    let data_res = hex::decode(split[1]);
-    if data_res.is_err() {
-        return Err(Box::new(io::Error::from(ErrorKind::Other)));
+    let iv = hex::decode(split[0])?;
+    let data = hex::decode(split[1])?;
+    let mac = hex::decode(split[2])?;
+    if iv.len() != NONCE_LEN || mac.len() != 16 {
+        return Err(Box::new(io::Error::from(ErrorKind::InvalidData)));
     }
-    let data = data_res.unwrap();
 
-    let mac_res = hex::decode(split[2]);
-    if mac_res.is_err() {
-        return Err(Box::new(io::Error::from(ErrorKind::Other)));
+    let key = get_valid_key(password);
+    if key.len() != KEY_LEN {
+        return Err(Box::new(io::Error::from(ErrorKind::InvalidData)));
     }
-    let mac = mac_res.unwrap();
 
-    Ok((iv, data, mac))
+    let cipher = Aes128Gcm::new_from_slice(&key)
+        .map_err(|_| io::Error::from(ErrorKind::InvalidData))?;
+    let mut cipher_text = data;
+    cipher_text.extend_from_slice(&mac);
+    let plain = cipher
+        .decrypt(Nonce::from_slice(&iv), cipher_text.as_slice())
+        .map_err(|_| io::Error::from(ErrorKind::InvalidData))?;
+    Ok(plain)
 }
