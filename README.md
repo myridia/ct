@@ -5,6 +5,7 @@
 
 Basic Text editor to encrypt fast and easy text.
 It used the Galois/Counter Mode (GCM), an AEAD mode of operation for symmetric-key cryptographic. 
+Keys are derived from the password with PBKDF2-HMAC-SHA256 and a random salt.
 It's extremely secure and simple to use. Furthermore, it comes with a GUI less app ct_nox, so you can use it for your other programs.
 
 ## Usage

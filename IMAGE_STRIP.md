@@ -14,23 +14,23 @@ Encode encrypted text into a 256x256 PNG image as a binary frame. Each character
 └──────────────────────────────┘
 ```
 
-- **Image size**: 256x256 pixels
+- **Image size**: starts at 256x256 pixels and grows in 16-pixel steps until the ciphertext fits
 - **Dot size**: 1x1 pixel
 - **Path**: clockwise from top-left corner
 - **Encoding**: black pixel = bit 1, white pixel = bit 0
 - **8 pixels per character**, MSB first
 - **Center**: ct64.png logo (64x64) with alpha blending
-- **Max capacity**: 127 characters (1020 pixels / 8 bits)
+- **Capacity**: 127 characters per 256x256 frame; the frame grows for longer ciphertext
 
 ## Data Format
 
 The encrypted text follows the standard ct format:
 
 ```
-{hex_nonce}/{hex_ciphertext}/{hex_mac}
+v2/pbkdf2-sha256/{iterations}/{hex_salt}/{hex_nonce}/{hex_ciphertext}/{hex_mac}
 ```
 
-Example: `a1b2c3d4e5f6/48656c6c6f/d7a8fbb3f7d2`
+Example: `v2/pbkdf2-sha256/600000/00112233445566778899aabbccddeeff/a1b2c3d4e5f60718293a4b5c/48656c6c6f/d7a8fbb3f7d2`
 
 This string is then encoded as black/white pixels around the frame.
 
@@ -82,16 +82,11 @@ ct_nox image-decode -f image.png -p "pass"
 
 ## Capacity
 
-| Text length | Fits in 256x256? |
-|-------------|-------------------|
-| 1-127 chars | Yes |
-| 128+ chars  | No (too long) |
-
-The encrypted output includes overhead (nonce + MAC + separators), so the actual plaintext limit is shorter. A 50-character plaintext produces ~158 characters of ciphertext, which exceeds the 127-character limit. For longer texts, a larger image would be needed.
+The v2 header is about 115 hex characters, so a 256x256 frame holds only a few plaintext bytes. `image-encode` starts at 256x256 and grows the image in 16-pixel steps until the ciphertext fits.
 
 ## Technical Details
 
-- **Encryption**: AES-128-GCM (same as text mode)
+- **Encryption**: AES-128-GCM with PBKDF2-HMAC-SHA256 key derivation (same as text mode)
 - **PNG library**: `png` crate (Rust)
 - **Logo**: embedded from `test/assets/icons/ct64.png` at compile time
 - **Pixel order**: top row left-to-right, right column top-to-bottom, bottom row right-to-left, left column bottom-to-top

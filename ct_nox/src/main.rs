@@ -21,7 +21,7 @@ fn ensure_extension(path: &str, ext: &str) -> String {
 fn main() {
     let matches = Command::new("ct_nox")
         .author("veto")
-        .about("Encrypt/decrypt text with AES-128-GCM")
+        .about("Encrypt/decrypt text with AES-128-GCM and PBKDF2-HMAC-SHA256")
         .subcommand(
             Command::new("encrypt")
                 .about("Encrypt text")
