@@ -25,6 +25,11 @@ use unic_langid::LanguageIdentifier;
 #[folder = "i18n"]
 struct Localizations;
 
+enum JobDone {
+    SetText { text: String, picked_path: Option<String> },
+    Status(String),
+}
+
 fn main() -> Result<(), eframe::Error> {
     //println!("{:?}", config.language);
     /*
@@ -113,6 +118,8 @@ struct CT {
     lang_name: String,
     last_copied_text: String,
     open_file: String,
+    busy_label: Option<String>,
+    job_rx: Option<std::sync::mpsc::Receiver<JobDone>>,
 }
 
 //    fn new(_cc: &eframe::CreationContext<'_>) -> Self {
@@ -146,6 +153,52 @@ impl CT {
             }
         }
         result
+    }
+
+    fn start_job(&mut self, label: &str, ctx: &egui::Context, job: impl FnOnce() -> JobDone + Send + 'static) {
+        if self.job_rx.is_some() {
+            return;
+        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.busy_label = Some(label.to_string());
+        self.job_rx = Some(rx);
+        let ctx = ctx.clone();
+        std::thread::spawn(move || {
+            let outcome = job();
+            let _ = tx.send(outcome);
+            ctx.request_repaint();
+        });
+    }
+
+    fn poll_job(&mut self, ctx: &egui::Context) {
+        let mut done = None;
+        if let Some(rx) = self.job_rx.as_ref() {
+            match rx.try_recv() {
+                Ok(d) => done = Some(d),
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    ctx.request_repaint_after(std::time::Duration::from_millis(50));
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    done = Some(JobDone::Status("job failed".to_string()))
+                }
+            }
+        }
+        if let Some(d) = done {
+            self.job_rx = None;
+            self.busy_label = None;
+            match d {
+                JobDone::SetText { text, picked_path } => {
+                    self.text = text;
+                    if let Some(path) = picked_path {
+                        self.picked_path = path.clone();
+                        self.open_file = path;
+                    }
+                }
+                JobDone::Status(s) => {
+                    self.status_text = s;
+                }
+            }
+        }
     }
 
     fn pick_folder_dialog(&mut self, dialog: rfd::FileDialog) -> Option<std::path::PathBuf> {
@@ -535,6 +588,8 @@ impl Default for CT {
             lang_name: "".to_string(),
             last_copied_text: "".to_string(),
             open_file: "".to_string(),
+            busy_label: None,
+            job_rx: None,
             cursor1: 0,
             cursor2: 0,
             _password: "".to_string(),
@@ -578,6 +633,7 @@ impl Default for CT {
 
 impl eframe::App for CT {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.poll_job(ctx);
         if self.panel_central == false && self.panel_setting == true {
             egui::CentralPanel::default().show(ctx, |ui| {
                 ui.add_space(20.0);
@@ -706,25 +762,36 @@ impl eframe::App for CT {
                                         if let Some(path) =
                                             self.pick_file_dialog(rfd::FileDialog::new())
                                         {
-                                            self.picked_path = path.display().to_string();
-                                            self.open_file = self.picked_path.clone();
-                                            let ct = read_file(&self.picked_path.clone());
-                                            self.text = decrypt(&ct, &self._password);
+                                            let path_str = path.display().to_string();
+                                            let password = self._password.clone();
+                                            self.start_job("Decrypting…", ctx, move || {
+                                                let ct = read_file(&path_str);
+                                                let text = decrypt(&ct, &password);
+                                                JobDone::SetText {
+                                                    text,
+                                                    picked_path: Some(path_str),
+                                                }
+                                            });
                                         }
                                     }
                                     "save" => {
-                                        if !self.picked_path.is_empty() {
-                                            let ct = encrypt(&self.text, &self._password);
-                                            let _ = write_file(&self.picked_path.clone(), &ct);
-                                        } else if let Some(path) =
-                                            self.save_file_dialog(rfd::FileDialog::new())
-                                        {
-                                            self.picked_path = ensure_extension(
-                                                &path.display().to_string(),
-                                                ".ct",
-                                            );
-                                            let ct = encrypt(&self.text, &self._password);
-                                            let _ = write_file(&self.picked_path.clone(), &ct);
+                                        let target = if !self.picked_path.is_empty() {
+                                            Some(self.picked_path.clone())
+                                        } else {
+                                            self.save_file_dialog(rfd::FileDialog::new()).map(
+                                                |path| ensure_extension(&path.display().to_string(), ".ct"),
+                                            )
+                                        };
+                                        if let Some(path) = target {
+                                            self.picked_path = path.clone();
+                                            self.open_file = path.clone();
+                                            let text = self.text.clone();
+                                            let password = self._password.clone();
+                                            self.start_job("Encrypting…", ctx, move || {
+                                                let ct = encrypt(&text, &password);
+                                                let _ = write_file(&path, &ct);
+                                                JobDone::Status("saved".to_string())
+                                            });
                                         }
                                     }
                                     "export_image" => {
@@ -735,19 +802,33 @@ impl eframe::App for CT {
                                                 &path.display().to_string(),
                                                 ".png",
                                             );
-                                            let ct = encrypt(&self.text, &self._password);
-                                            let _ = encode_to_image(&ct, &out);
+                                            let text = self.text.clone();
+                                            let password = self._password.clone();
+                                            self.start_job("Encrypting…", ctx, move || {
+                                                let ct = encrypt(&text, &password);
+                                                let _ = encode_to_image(&ct, &out);
+                                                JobDone::Status("image exported".to_string())
+                                            });
                                         }
                                     }
                                     "import_image" => {
                                         if let Some(path) = self.pick_file_dialog(
                                             rfd::FileDialog::new().add_filter("PNG", &["png"]),
                                         ) {
-                                            if let Ok(ct) =
-                                                decode_from_image(&path.display().to_string())
-                                            {
-                                                self.text = decrypt(&ct, &self._password);
-                                            }
+                                            let path_str = path.display().to_string();
+                                            let password = self._password.clone();
+                                            self.start_job("Decrypting…", ctx, move || {
+                                                match decode_from_image(&path_str) {
+                                                    Ok(ct) => {
+                                                        let text = decrypt(&ct, &password);
+                                                        JobDone::SetText {
+                                                            text,
+                                                            picked_path: None,
+                                                        }
+                                                    }
+                                                    Err(_) => JobDone::Status("image decode failed".to_string()),
+                                                }
+                                            });
                                         }
                                     }
                                     "export_selected" => {
@@ -762,12 +843,14 @@ impl eframe::App for CT {
                                                     &out.display().to_string(),
                                                     ".png",
                                                 );
-                                                let ct = encrypt(&self.text, &self._password);
-                                                let _ = encode_to_selected_image(
-                                                    &ct,
-                                                    &bg.display().to_string(),
-                                                    &out_path,
-                                                );
+                                                let text = self.text.clone();
+                                                let password = self._password.clone();
+                                                let bg = bg.display().to_string();
+                                                self.start_job("Encrypting…", ctx, move || {
+                                                    let ct = encrypt(&text, &password);
+                                                    let _ = encode_to_selected_image(&ct, &bg, &out_path);
+                                                    JobDone::Status("image exported".to_string())
+                                                });
                                             }
                                         }
                                     }
@@ -952,10 +1035,16 @@ impl eframe::App for CT {
                         self.panel_central = true;
                         self.panel_setting = false;
                         if let Some(path) = self.pick_file_dialog(rfd::FileDialog::new()) {
-                            self.picked_path = path.display().to_string();
-                            self.open_file = self.picked_path.clone();
-                            let ct = read_file(&self.picked_path.clone());
-                            self.text = decrypt(&ct, &self._password);
+                            let path_str = path.display().to_string();
+                            let password = self._password.clone();
+                            self.start_job("Decrypting…", ctx, move || {
+                                let ct = read_file(&path_str);
+                                let text = decrypt(&ct, &password);
+                                JobDone::SetText {
+                                    text,
+                                    picked_path: Some(path_str),
+                                }
+                            });
                         }
 
                         ui.close_menu();
@@ -963,13 +1052,23 @@ impl eframe::App for CT {
                     if ui.button("Save CT File").clicked() {
                         self.panel_central = true;
                         self.panel_setting = false;
-                        if !self.picked_path.is_empty() {
-                            let ct = encrypt(&self.text, &self._password);
-                            let _ = write_file(&self.picked_path.clone(), &ct);
-                        } else if let Some(path) = self.save_file_dialog(rfd::FileDialog::new()) {
-                            self.picked_path = ensure_extension(&path.display().to_string(), ".ct");
-                            let ct = encrypt(&self.text, &self._password);
-                            let _ = write_file(&self.picked_path.clone(), &ct);
+                        let target = if !self.picked_path.is_empty() {
+                            Some(self.picked_path.clone())
+                        } else {
+                            self.save_file_dialog(rfd::FileDialog::new()).map(
+                                |path| ensure_extension(&path.display().to_string(), ".ct"),
+                            )
+                        };
+                        if let Some(path) = target {
+                            self.picked_path = path.clone();
+                            self.open_file = path.clone();
+                            let text = self.text.clone();
+                            let password = self._password.clone();
+                            self.start_job("Encrypting…", ctx, move || {
+                                let ct = encrypt(&text, &password);
+                                let _ = write_file(&path, &ct);
+                                JobDone::Status("saved".to_string())
+                            });
                         }
                         ui.close_menu();
                     }
@@ -977,9 +1076,16 @@ impl eframe::App for CT {
                         self.panel_central = true;
                         self.panel_setting = false;
                         if let Some(path) = self.save_file_dialog(rfd::FileDialog::new()) {
-                            self.picked_path = ensure_extension(&path.display().to_string(), ".ct");
-                            let ct = encrypt(&self.text, &self._password);
-                            let _ = write_file(&self.picked_path.clone(), &ct);
+                            let path = ensure_extension(&path.display().to_string(), ".ct");
+                            self.picked_path = path.clone();
+                            self.open_file = path.clone();
+                            let text = self.text.clone();
+                            let password = self._password.clone();
+                            self.start_job("Encrypting…", ctx, move || {
+                                let ct = encrypt(&text, &password);
+                                let _ = write_file(&path, &ct);
+                                JobDone::Status("saved".to_string())
+                            });
                         }
                         ui.close_menu();
                     }
@@ -1001,8 +1107,13 @@ impl eframe::App for CT {
                             rfd::FileDialog::new().add_filter("PNG", &["png"]),
                         ) {
                             let out = ensure_extension(&path.display().to_string(), ".png");
-                            let ct = encrypt(&self.text, &self._password);
-                            let _ = encode_to_image(&ct, &out);
+                            let text = self.text.clone();
+                            let password = self._password.clone();
+                            self.start_job("Encrypting…", ctx, move || {
+                                let ct = encrypt(&text, &password);
+                                let _ = encode_to_image(&ct, &out);
+                                JobDone::Status("image exported".to_string())
+                            });
                         }
                         ui.close_menu();
                     }
@@ -1012,9 +1123,20 @@ impl eframe::App for CT {
                         if let Some(path) = self.pick_file_dialog(
                             rfd::FileDialog::new().add_filter("PNG", &["png"]),
                         ) {
-                            if let Ok(ct) = decode_from_image(&path.display().to_string()) {
-                                self.text = decrypt(&ct, &self._password);
-                            }
+                            let path_str = path.display().to_string();
+                            let password = self._password.clone();
+                            self.start_job("Decrypting…", ctx, move || {
+                                match decode_from_image(&path_str) {
+                                    Ok(ct) => {
+                                        let text = decrypt(&ct, &password);
+                                        JobDone::SetText {
+                                            text,
+                                            picked_path: None,
+                                        }
+                                    }
+                                    Err(_) => JobDone::Status("image decode failed".to_string()),
+                                }
+                            });
                         }
                         ui.close_menu();
                     }
@@ -1028,12 +1150,14 @@ impl eframe::App for CT {
                                 rfd::FileDialog::new().add_filter("PNG", &["png"]),
                             ) {
                                 let out_path = ensure_extension(&out.display().to_string(), ".png");
-                                let ct = encrypt(&self.text, &self._password);
-                                let _ = encode_to_selected_image(
-                                    &ct,
-                                    &bg.display().to_string(),
-                                    &out_path,
-                                );
+                                let text = self.text.clone();
+                                let password = self._password.clone();
+                                let bg = bg.display().to_string();
+                                self.start_job("Encrypting…", ctx, move || {
+                                    let ct = encrypt(&text, &password);
+                                    let _ = encode_to_selected_image(&ct, &bg, &out_path);
+                                    JobDone::Status("image exported".to_string())
+                                });
                             }
                         }
                         ui.close_menu();
@@ -1043,8 +1167,11 @@ impl eframe::App for CT {
                         self.panel_setting = false;
                         if let Some(dir) = self.pick_folder_dialog(rfd::FileDialog::new()) {
                             let dir_str = dir.display().to_string();
-                            let saved = encrypt_dir(&dir_str, &self._password);
-                            self.status_text = format!("encrypted {} files", saved.len());
+                            let password = self._password.clone();
+                            self.start_job("Encrypting…", ctx, move || {
+                                let saved = encrypt_dir(&dir_str, &password);
+                                JobDone::Status(format!("encrypted {} files", saved.len()))
+                            });
                         }
                         ui.close_menu();
                     }
@@ -1104,10 +1231,14 @@ impl eframe::App for CT {
 
         egui::TopBottomPanel::bottom("status_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                if let Some(label) = &self.busy_label {
+                    ui.spinner();
+                    ui.label(label);
+                    ui.separator();
+                }
                 ui.label(format!("{0}: {1}", &self.status, self.status_text));
                 ui.separator();
                 ui.label(&self.open_file);
-                //ui.add(egui::ProgressBar::new(self.progress).show_percentage());
             });
         });
     }
