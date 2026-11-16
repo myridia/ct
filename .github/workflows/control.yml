@@ -1,5 +1,9 @@
 name: Build Control
 on:
+  push:
+    branches: ["main"]
+    tags:
+      - '*'
   workflow_dispatch:
     inputs:
       target:
@@ -24,32 +28,32 @@ permissions:
 
 jobs:
   linux:
-    if: inputs.target == 'all' || inputs.target == 'linux'
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'linux'
     uses: ./.github/workflows/linux.yml
     secrets: inherit
 
   debian:
-    if: inputs.target == 'all' || inputs.target == 'debian'
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'debian'
     uses: ./.github/workflows/debian.yml
     secrets: inherit
 
   windows:
-    if: inputs.target == 'all' || inputs.target == 'windows'
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'windows'
     uses: ./.github/workflows/windows.yml
     secrets: inherit
 
   macos:
-    if: inputs.target == 'all' || inputs.target == 'macos'
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'macos'
     uses: ./.github/workflows/macos.yml
     secrets: inherit
 
   freebsd:
-    if: inputs.target == 'all' || inputs.target == 'freebsd'
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'freebsd'
     uses: ./.github/workflows/freebsd.yml
     secrets: inherit
 
   msix:
     needs: [windows]
-    if: always() && (inputs.target == 'all' || inputs.target == 'msix')
+    if: always() && (github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'msix')
     uses: ./.github/workflows/msix.yml
     secrets: inherit

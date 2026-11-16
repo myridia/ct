@@ -1,9 +1,5 @@
 name: Linux
 on:
-  push:
-    branches: ["main"]
-    tags:
-      - '*'
   workflow_dispatch:
   workflow_call:
 
@@ -15,7 +11,7 @@ permissions:
 
 jobs:
   Build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: github.repository_owner == 'myridia'
 
     steps:
