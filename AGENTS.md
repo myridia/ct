@@ -136,4 +136,5 @@ PATH="$(pwd)/osxcross/target/bin:$PATH" cargo build --target x86_64-apple-darwin
 - Workspace-wide rules in `~/webs/Agents/AGENTS.md`.
 - Verification: `cargo check && cargo build` (run on target host — no cargo in dev container).
 - `ct_nox` is a library crate consumed by both the GUI app and its own CLI binary.
+- In the GUI, KDF/crypto runs on a worker thread via `start_job`/`poll_job` (egui is immediate-mode; PBKDF2 600k iterations would otherwise freeze the window). The status bar shows a spinner with `Encrypting…`/`Decrypting…` while busy; `JobDone` carries the outcome (set text / status message).
 - i18n keys are defined in `en-US.ftl` (root) and mirrored under `i18n/{locale}/ct.ftl`.
