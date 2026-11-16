@@ -24,16 +24,17 @@ jobs:
           brew install tree
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           source $HOME/.cargo/env
-          rustup toolchain install 1.81.0
-          rustup default 1.81.0
+          rustup toolchain install 1.94.1
+          rustup default 1.94.1
           rustup component add llvm-tools-preview
           cargo --version 
-          
+
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Compile 
         run: |
+          source $HOME/.cargo/env
           cargo build --release  
       - name: List
         run: |
