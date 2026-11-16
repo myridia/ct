@@ -21,9 +21,11 @@ jobs:
     steps:
       - name: Install Rust
         run: |
-          brew install tree 
+          brew install tree
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           source $HOME/.cargo/env
+          rustup toolchain install 1.81.0
+          rustup default 1.81.0
           rustup component add llvm-tools-preview
           cargo --version 
           
