@@ -1,9 +1,5 @@
-name: Macos
+name: Macos_intel
 on:
-  # push:
-  #   branches: ["main"]
-  #   tags:
-  #     - '*'
   workflow_dispatch:
   workflow_call:
 
@@ -42,17 +38,17 @@ jobs:
           tree . 
       - name: Rename
         run: |
-          cp target/release/ct ct_macos.app
-          hdiutil create -volname "ct_macos" -srcfolder "ct_macos.app" -ov -format UDZO "ct_macos.dmg"
+          cp target/release/ct ct_macos_intel.app
+          hdiutil create -volname "ct_macos" -srcfolder "ct_macos_intel.app" -ov -format UDZO "ct_macos_intel.dmg"
 
 
 
-      - name: Release Silicon
+      - name: Release
         if: github.repository_owner == 'myridia'
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: 'ct_macos.dmg'
+          file: 'ct_macos_intel.dmg'
           tag: ${{ github.ref }}
           overwrite: true
           file_glob: true 
