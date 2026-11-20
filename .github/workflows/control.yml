@@ -17,6 +17,7 @@ on:
           - debian
           - windows
           - macos
+          - macos_intel          
           - msix
           - freebsd
 
@@ -46,6 +47,11 @@ jobs:
     if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'macos'
     uses: ./.github/workflows/macos.yml
     secrets: inherit
+
+  macos_intel:
+    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'macos_intel'
+    uses: ./.github/workflows/macos_intel.yml
+    secrets: inherit    
 
   freebsd:
     if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'freebsd'
