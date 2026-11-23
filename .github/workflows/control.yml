@@ -5,21 +5,6 @@ on:
     tags:
       - '*'
   workflow_dispatch:
-    inputs:
-      target:
-        description: "What to build"
-        required: true
-        default: all
-        type: choice
-        options:
-          - all
-          - linux
-          - debian
-          - windows
-          - macos
-          - macos_intel          
-          - msix
-          - freebsd
 
 permissions:
   contents: write
@@ -28,38 +13,10 @@ permissions:
   packages: none
 
 jobs:
-  linux:
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'linux'
-    uses: ./.github/workflows/linux.yml
-    secrets: inherit
-
-  debian:
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'debian'
-    uses: ./.github/workflows/debian.yml
-    secrets: inherit
-
-  windows:
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'windows'
-    uses: ./.github/workflows/windows.yml
-    secrets: inherit
-
-  macos:
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'macos'
-    uses: ./.github/workflows/macos.yml
-    secrets: inherit
-
-  macos_intel:
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'macos_intel'
-    uses: ./.github/workflows/macos_intel.yml
-    secrets: inherit    
-
-  freebsd:
-    if: github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'freebsd'
-    uses: ./.github/workflows/freebsd.yml
-    secrets: inherit
-
-  msix:
-    needs: [windows]
-    if: always() && (github.event_name == 'push' || inputs.target == 'all' || inputs.target == 'msix')
-    uses: ./.github/workflows/msix.yml
-    secrets: inherit
+  linux:        { if: github.repository_owner == 'myridia', uses: ./.github/workflows/linux.yml, secrets: inherit }
+  debian:       { if: github.repository_owner == 'myridia', uses: ./.github/workflows/debian.yml, secrets: inherit }
+  windows:      { if: github.repository_owner == 'myridia', uses: ./.github/workflows/windows.yml, secrets: inherit }
+  macos:        { if: github.repository_owner == 'myridia', uses: ./.github/workflows/macos.yml, secrets: inherit }
+  macos_intel:  { if: github.repository_owner == 'myridia', uses: ./.github/workflows/macos_intel.yml, secrets: inherit }
+  freebsd:      { if: github.repository_owner == 'myridia', uses: ./.github/workflows/freebsd.yml, secrets: inherit }
+  msix:         { if: github.repository_owner == 'myridia', uses: ./.github/workflows/msix.yml, secrets: inherit }
