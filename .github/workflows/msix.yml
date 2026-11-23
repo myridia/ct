@@ -16,7 +16,6 @@ permissions:
 jobs:
   build-msix:
     runs-on: windows-latest 
-    if: github.repository_owner == 'myridia'
 
     steps:
       - name: Checkout code

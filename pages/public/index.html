@@ -1,66 +1,153 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Myridia.com — the IT company that helps secure the world with strong encryption and simple security tools.">
-<link rel="icon" href="favicon.ico">
-<title>Myridia.com — Help Secure the World</title>
-<style>
-  :root { --ink: #16181d; --paper: #f6f5f2; --accent: #1f4fd6; --muted: #5b616e; --line: #e4e2dc; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--paper); line-height: 1.65; }
-  header { border-bottom: 1px solid var(--line); padding: 28px 0; }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 14px; }
-  header img { width: 52px; height: 52px; }
-  .brand { font-size: 22px; font-weight: 700; letter-spacing: 0.2px; }
-  .tag { color: var(--muted); font-size: 14px; }
-  main { max-width: 880px; margin: 0 auto; padding: 48px 24px 72px; }
-  section { margin-bottom: 56px; }
-  h1 { font-size: 44px; line-height: 1.12; margin: 0 0 18px; }
-  h2 { font-size: 30px; margin: 0 0 16px; }
-  p { margin: 0 0 16px; }
-  .hero { padding-top: 24px; }
-  .hero p { font-size: 18px; color: var(--muted); }
-  .about p { color: #2a2e37; }
-  .help { background: #ffffff; border: 1px solid var(--line); border-radius: 14px; padding: 28px; }
-  .help a { color: var(--accent); }
-  footer { border-top: 1px solid var(--line); padding: 24px 0; color: var(--muted); font-size: 14px; }
-  footer .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ct — fast, simple text encryption</title>
+  <meta name="description" content="ct is an encrypted text editor with AES-128-GCM, CT files, a headless CLI and the ability to save encrypted text as a PNG image.">
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <div class="wrap">
-      <img src="img/ct.png" alt="Myridia.com">
-      <div>
-        <div class="brand">Myridia.com</div>
-        <div class="tag">IT security that helps secure the world</div>
-      </div>
-    </div>
+  <header class="site-header">
+    <a class="brand" href="./">
+      <img src="img/ct.png" alt="" width="38" height="38">
+      <span>ct <small>by Myridia.com</small></span>
+    </a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#gui">GUI</a>
+      <a href="#cli">CLI</a>
+      <a href="#image">Save as image</a>
+      <a href="#start">Quick start</a>
+      <a href="https://github.com/veto8/ct">GitHub</a>
+    </nav>
   </header>
+
   <main>
     <section class="hero">
-      <h1>The IT company that helps secure the world.</h1>
-      <p>Myridia.com builds the software that takes security seriously — from strong encryption to the workflows around it. Simple tools, strong protection, real peace of mind.</p>
-    </section>
-    <section id="about">
-      <h2>About Us</h2>
-      <p>Myridia.com is an IT company. We build in-house software for digital life that matters: tools that protect words, files and secrets.</p>
-      <p>Our mission is to help secure the world. We believe strong encryption should be simple, available to everyone and actually used — not reserved for the paranoid few. Every message, every document, every identity deserves a strong layer of protection.</p>
-      <p>Our products, such as the ct text encryption tool, put military-grade AES-128-GCM encryption into everyday tools. Text, CLI, images. So strong security stops being a specialist task and becomes the default.</p>
-    </section>
-    <section id="help">
-      <h2>Help</h2>
-      <div class="help">
-        <p>Need help? Visit the Myridia.com help desk at <a href="https://ct.myridia.com" target="_blank" rel="noopener noreferrer">https://ct.myridia.com</a>.</p>
+      <img class="hero-icon" src="img/ct.png" alt="ct icon" width="132" height="132">
+      <div class="hero-copy">
+        <p class="eyebrow">Basic text editor to encrypt fast and easy text</p>
+        <h1>ct</h1>
+        <p class="lead">
+          Type a secret, protect it with AES-128-GCM, then save it as a <code>.ct</code> file —
+          or hide the encrypted text inside a PNG image. Use the desktop GUI or the
+          headless <code>ct_nox</code> command line tool.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/veto8/ct/releases/latest">Download latest</a>
+          <a class="button" href="https://github.com/veto8/ct">View source</a>
+          <a class="button" href="https://ct.myridia.com">Help desk</a>
+        </div>
       </div>
     </section>
+
+    <section class="section" id="features">
+      <h2>What it does</h2>
+      <div class="cards">
+        <article>
+          <h3>Strong encryption</h3>
+          <p>AES-128-GCM, an AEAD mode for symmetric-key cryptography. Keys are derived from your password with PBKDF2-HMAC-SHA256 and a random salt.</p>
+        </article>
+        <article>
+          <h3>Text &amp; password</h3>
+          <p>Type or paste text into the editor, add a password, and encrypt or decrypt it immediately. No accounts, no cloud, no setup.</p>
+        </article>
+        <article>
+          <h3>Open &amp; save CT files</h3>
+          <p><strong>Open CT File</strong> decrypts an existing encrypted file; <strong>Save CT File</strong> encrypts your text and writes it to disk.</p>
+        </article>
+        <article>
+          <h3>Save as image</h3>
+          <p><strong>Export Image</strong> encrypts the text and encodes it as a 256×256 PNG with a binary frame around the ct logo. The frame grows automatically for longer messages.</p>
+        </article>
+        <article>
+          <h3>Import from image</h3>
+          <p><strong>Import Image</strong> reads the binary frame from a PNG and decrypts the hidden text with your password. Works with files produced by the GUI or the CLI.</p>
+        </article>
+        <article>
+          <h3>GUI and CLI</h3>
+          <p>The GUI is the everyday editor. <code>ct_nox</code> is the windowless companion for scripts, pipelines and other programs.</p>
+        </article>
+        <article>
+          <h3>Standard ct format</h3>
+          <p>Encrypted text is stored as <code>v2/pbkdf2-sha256/{iterations}/{salt}/{nonce}/{ciphertext}/{mac}</code> — hex encoded, portable and verifiable.</p>
+        </article>
+        <article>
+          <h3>Portable builds</h3>
+          <p>Built with Rust and eframe/egui. Release builds are published for Linux, Debian, Windows and macOS.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="gui">
+      <h2>GUI workflow</h2>
+      <ol class="steps">
+        <li>Run <code>ct</code> and type or paste your text.</li>
+        <li>Enter a password.</li>
+        <li><strong>Open CT File</strong> — decrypt an encrypted file.</li>
+        <li><strong>Save CT File</strong> — encrypt and save to a <code>.ct</code> file.</li>
+        <li><strong>Export Image</strong> — encrypt the text and save it as a PNG image.</li>
+        <li><strong>Import Image</strong> — select a PNG, enter the password, and read the decrypted text.</li>
+      </ol>
+      <p class="hint">The same export/import actions are also available from the File menu as <em>Export as Image</em> and <em>Import from Image</em>.</p>
+    </section>
+
+    <section class="section" id="cli">
+      <h2>Command line — ct_nox</h2>
+      <p>Everything the GUI can do is available headless. Use it from scripts or to move encrypted data between programs.</p>
+      <pre><code># encrypt / decrypt text
+ct_nox encrypt -t "hello world" -p "mypassword"
+ct_nox decrypt -t "encrypted_output" -p "mypassword"
+
+# encrypt / decrypt files
+ct_nox encrypt -f document.txt -p "mypassword" -o document.ct
+ct_nox decrypt -f document.ct -p "mypassword"</code></pre>
+    </section>
+
+    <section class="section" id="image">
+      <h2>Save secrets as an image</h2>
+      <p>
+        <strong>Image Strip</strong> encoding hides the encrypted text in the outer pixels of a PNG.
+        Each character becomes 8 pixels (black = 1, white = 0) placed clockwise around the frame,
+        with the ct logo in the center. A 256×256 image holds 127 characters; larger contents
+        grow the image in 16-pixel steps.
+      </p>
+      <pre><code># save encrypted text as a PNG image
+ct_nox image-encode -t "my secret message" -p "password123" -o output.png
+ct_nox image-encode -f secret.txt -p "password123" -o output.png
+
+# read it back
+ct_nox image-decode -f output.png -p "password123"</code></pre>
+      <p class="hint">Full format and pixel layout: <a href="https://github.com/veto8/ct/blob/main/IMAGE_STRIP.md">IMAGE_STRIP.md</a>.</p>
+    </section>
+
+    <section class="section" id="start">
+      <h2>Quick start</h2>
+      <pre><code>cargo build --release
+./target/release/ct      # GUI
+./target/release/ct_nox  # CLI</code></pre>
+      <p>On Linux, install the GUI build dependencies first:</p>
+      <pre><code>sudo apt-get install -y libclang-dev libgtk-3-dev \
+  libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+  libxkbcommon-dev libssl-dev</code></pre>
+      <p class="hint">
+        Full instructions and examples: <a href="https://github.com/veto8/ct#readme">README.md</a>
+      </p>
+    </section>
+
+    <section class="section" id="help">
+      <h2>Help &amp; feedback</h2>
+      <p>
+        Help desk: <a href="https://ct.myridia.com">https://ct.myridia.com</a><br>
+        Feedback and requests are welcome at <a href="mailto:veto@myridia.com">veto@myridia.com</a>.
+      </p>
+    </section>
   </main>
+
   <footer>
-    <div class="wrap">
-      <p>Myridia.com — help secure the world. Contact: <a href="mailto:veto@myridia.com">veto@myridia.com</a></p>
-    </div>
+    ct · Myridia.com — help secure the world · <a href="https://github.com/veto8/ct">veto8/ct</a>
   </footer>
 </body>
 </html>
